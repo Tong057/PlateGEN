@@ -1,7 +1,6 @@
 package com.tong057.plategen;
 
 import javafx.collections.FXCollections;
-import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
@@ -17,21 +16,12 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
-import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import javafx.util.converter.IntegerStringConverter;
-
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.text.Collator;
+import java.time.Year;
 import java.util.*;
 
-public class BaseWindowController implements Initializable {
+public class PlateGenWindowController implements Initializable {
     private Stage primaryStage;
     public void setPrimaryStage(Stage primaryStage) {
         this.primaryStage = primaryStage;
@@ -43,7 +33,6 @@ public class BaseWindowController implements Initializable {
 
     @FXML
     private Button removeAllPlatesButton;
-
     @FXML
     private Button savePlateButton;
 
@@ -87,31 +76,60 @@ public class BaseWindowController implements Initializable {
     @FXML
     public void initialize(URL location, ResourceBundle resources) {
         System.out.println("initialize called!");
-        setScene();
         voivodeshipsTownships = ExcelReader.readVoivodeshipsAndTownshipsWithCodes();
         registrationList = ExcelReader.readRegistrations();
+        setScene();
         initializeUI();
+        setupEventHandlers();
+    }
 
+    private void setupEventHandlers() {
         savePlateButton.setOnMouseClicked(event -> {
-            if(plateImageView != null)
+            if (plateImageView != null)
                 ImageUtils.saveImage(primaryStage, plateImageView.getImage());
         });
 
         removeAllPlatesButton.setOnMouseClicked(event -> {
-            for(int i = 0; i < registrationList.size(); ++i) {
-                ImageUtils.deleteImage(registrationList.get(i).getPlate().getPlateNumber());
+            for (Registration registration : registrationList) {
+                ImageUtils.deleteImage(registration.getPlate().getImagePath());
             }
             registrationList.clear();
             setRegistrationsToScrollPane();
             plateImageView.setImage(null);
         });
 
-        generatePlateButton.setOnAction(actionEvent -> registerVehicle());
+        generatePlateButton.setOnAction(actionEvent -> {
+            if (isFieldsIncomplete()) {
+                DialogUtils.showAlert("Error!", "Error: Incomplete Fields", "Some fields are not filled in. Please fill in all the required fields and try again.", Alert.AlertType.ERROR);
+            } else if (isInvalidYear()) {
+                DialogUtils.showAlert("Error!", "Error: Invalid Year Entered", "The year you have entered is invalid. Please provide a valid year.", Alert.AlertType.ERROR);
+            } else if (isIncompatiblePlate()) {
+                DialogUtils.showAlert("Error!", "Error: Incompatible License Plate", "The vehicle you specified is too new to accommodate a retro-style license plate. We apologize for any inconvenience caused.", Alert.AlertType.ERROR);
+            } else {
+                registerVehicle();
+            }
+        });
     }
 
-    public void setScene() {
+    private boolean isFieldsIncomplete() {
+        return brandVehicleTF.getText().isEmpty() || modelVehicleTF.getText().isEmpty() ||
+                yearProdVehicleTF.getText().isEmpty() || formatPlateComboBox.getValue() == null ||
+                voivodeshipComboBox.getValue() == null || townshipComboBox.getValue() == null;
+    }
+
+    private boolean isInvalidYear() {
+        int yearProd = Integer.parseInt(yearProdVehicleTF.getText());
+        return yearProd < 1900 || yearProd > Year.now().getValue();
+    }
+
+    private boolean isIncompatiblePlate() {
+        int yearProd = Integer.parseInt(yearProdVehicleTF.getText());
+        String format = formatPlateComboBox.getValue();
+        return yearProd > 1998 && format.equals("Zabytkowy");
+    }
+    private void setScene() {
         setSceneCreatePlate(true);
-        createPlateButton.setOnMouseClicked(mouseEvent -> setSceneCreatePlate(true));
+        createPlateButton.setOnMouseClicked(Event -> setSceneCreatePlate(true));
 
         plateListButton.setOnMouseClicked(mouseEvent -> {
             setSceneCreatePlate(false);
@@ -119,7 +137,7 @@ public class BaseWindowController implements Initializable {
         });
     }
 
-    public void setSceneCreatePlate(boolean isVisible) {
+    private void setSceneCreatePlate(boolean isVisible) {
         createPlatePane.setVisible(isVisible);
         plateListPane.setVisible(!isVisible);
         savePlateButton.setVisible(!isVisible);
@@ -148,39 +166,32 @@ public class BaseWindowController implements Initializable {
 
         if(plate != null) {
             Registration registration = new Registration(plate, vehicle);
-            showNotification(registration.getFullInfo());
-            registrationList.add(registration);
+            brandVehicleTF.setText("");
+            modelVehicleTF.setText("");
+            yearProdVehicleTF.setText("");
             setPlateImage(registration);
+            DialogUtils.showAlert("Notification", "Success! The car has been registered.", registration.getFullInfo(), Alert.AlertType.INFORMATION);
+            registrationList.add(registration);
 
         }
     }
 
-    private void showNotification(String text) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Notification");
-        alert.setHeaderText("Success! The car has been registered.");
-        alert.getDialogPane().setStyle("-fx-font-size: 14px; -fx-font-family: Swis721 Hv BT;");
-        alert.setContentText(text);
-        alert.showAndWait();
-    }
-
-    public void setComboBoxSettings() {
+    private void setComboBoxSettings() {
         setVoivodeshipComboBox();
         setTownshipComboBox();
         setFormatPlateComboBox();
     }
 
     private void setVoivodeshipComboBox() {
-        // Creating voivodeship`s ArrayList with loaded data from Excel
+        // ArrayList with loaded data from Excel
         List<String> voivodeships = new ArrayList<>(voivodeshipsTownships.keySet());
         // Sorting list of voivodeships using comparator
-        voivodeships.sort(polishComparator);
+        voivodeships.sort(FormattingUtils.polishComparator);
 
         voivodeshipComboBox.setItems(FXCollections.observableArrayList(voivodeships));
         voivodeshipComboBox.setVisibleRowCount(6);
         voivodeshipComboBox.setEditable(false);
 
-        // Voivodeship selection event
         voivodeshipComboBox.setOnAction(event -> updateTownshipComboBox());
     }
 
@@ -189,7 +200,7 @@ public class BaseWindowController implements Initializable {
         townshipsCodes = voivodeshipsTownships.get(selectedVoivodeship);
         if (townshipsCodes != null) {
             List<String> townships = new ArrayList<>(townshipsCodes.keySet());
-            townships.sort(polishComparator);
+            townships.sort(FormattingUtils.polishComparator);
 
             // Updating the list of counties in the ComboBox
             townshipComboBox.setItems(FXCollections.observableArrayList(townships));
@@ -211,25 +222,15 @@ public class BaseWindowController implements Initializable {
         });
     }
 
-    public void setTextFieldSettings() {
-        yearProdVehicleTF.setOnMouseClicked(actionEvent -> yearProdVehicleTF.setTextFormatter(textFormatter));
+    private void setTextFieldSettings() {
+        brandVehicleTF.setOnMouseClicked(actionEvent -> brandVehicleTF.setTextFormatter(FormattingUtils.setLimitedTextFormatter()));
+        modelVehicleTF.setOnMouseClicked(actionEvent -> modelVehicleTF.setTextFormatter(FormattingUtils.setLimitedTextFormatter()));
+        yearProdVehicleTF.setOnMouseClicked(actionEvent -> yearProdVehicleTF.setTextFormatter(FormattingUtils.setNumericTextFormatter()));
     }
 
-    // Comparator considering Polish letters
-    Comparator<String> polishComparator = (s1, s2) -> {
-        Collator collator = Collator.getInstance(Locale.forLanguageTag("pl-PL"));
-        return collator.compare(s1, s2);
-    };
-
-    TextFormatter<Integer> textFormatter = new TextFormatter<>(
-            new IntegerStringConverter(),
-            0,
-            change -> (change.getControlNewText().matches("\\d*") && change.getControlNewText().length() <= 4) ? change : null
-    );
-
-    public void setLogo(ImageView logoImageView) {
+    private void setLogo(ImageView logoImageView) {
         String imagePath = "/images/MenuLogo.png";
-        Image image = new Image(Objects.requireNonNull(BaseWindowController.class.getResourceAsStream(imagePath)));
+        Image image = new Image(Objects.requireNonNull(PlateGenWindowController.class.getResourceAsStream(imagePath)));
         logoImageView.setImage(image);
     }
 
@@ -244,7 +245,6 @@ public class BaseWindowController implements Initializable {
             setStandardPlateRectangle(true);
             plateImageView.setX(0);
         }
-
     }
 
     public void setStandardPlateRectangle(boolean isVisible) {
@@ -255,14 +255,12 @@ public class BaseWindowController implements Initializable {
     public void setRegistrationsToScrollPane() {
         registrationsListVBox.getChildren().clear();
         scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-
         for (Registration registration : registrationList) {
             HBox hBox = new HBox();
             hBox.setAlignment(Pos.CENTER_LEFT);
             hBox.setSpacing(10.0);
             hBox.setStyle("-fx-background-color: #14161a;");
             hBox.setPadding(new Insets(5, 0, 5, 25));
-            hBox.getStyleClass().add("hbox");
 
             Vehicle vehicle = registration.getVehicle();
             Plate plate = registration.getPlate();
@@ -288,29 +286,26 @@ public class BaseWindowController implements Initializable {
 
             registrationsListVBox.getChildren().add(hBox);
 
-            int index = registrationList.indexOf(registration);
-
             hBox.setOnMouseEntered(event -> hBox.setStyle("-fx-background-color: #1a1e22;"));
             hBox.setOnMouseExited(event -> hBox.setStyle("-fx-background-color: #14161a;"));
 
-            hBox.setOnMouseClicked(event -> {
-                setPlateImage(registration);
-                setRegistrationsToScrollPane(); // Refresh the list display
-            });
+            hBox.setOnMouseClicked(event -> setPlateImage(registration));
 
-            Button removeButton = createButton("Remove", "button");
+            Button removeButton = createButton();
             removeButton.setOnAction(event -> {
-                ImageUtils.deleteImage(plate.getPlateNumber());
-                registrationList.remove(registration);
+                ImageUtils.deleteImage(plate.getImagePath());
+                int selectedIndex = registrationsListVBox.getChildren().indexOf(hBox); // index of selected element
 
+                registrationList.remove(registration);
                 registrationsListVBox.getChildren().remove(hBox);
 
-                if (registrationList.size() != index)
-                    setPlateImage(registrationList.get(index));
-                else if (registrationList.size() == 0) {
+                if (selectedIndex >= 0 && selectedIndex < registrationList.size()) {
+                    setPlateImage(registrationList.get(selectedIndex));
+                } else if (registrationList.isEmpty()) {
                     plateImageView.setImage(null);
-                } else
-                    setPlateImage(registrationList.get(index - 1));
+                } else if (selectedIndex >= registrationList.size()) {
+                    setPlateImage(registrationList.get(registrationList.size() - 1));
+                }
 
                 event.consume(); // Prevent event propagation to HBox
             });
@@ -338,9 +333,9 @@ public class BaseWindowController implements Initializable {
         return label;
     }
 
-    private Button createButton(String text, String styleClass) {
-        Button button = new Button(text);
-        button.getStyleClass().add(styleClass);
+    private Button createButton() {
+        Button button = new Button("Remove");
+        button.getStyleClass().add("button");
         return button;
     }
 

@@ -11,10 +11,8 @@ public class ExcelWriter {
         String excelFileName = "src/main/resources/excel/registrations.xlsx"; // Relative path to the Excel file
 
         try (Workbook workbook = new XSSFWorkbook()) {
-
             Sheet sheet = workbook.createSheet("Registrations");
-
-            // Create column headers
+            // Column headers
             String[] headers = new String[]{"Brand", "Model", "Year of production", "Voivodeship", "Township", "Format", "Plate Number", "Cost", "Image Path"};
             Row headerRow = sheet.createRow(0);
             for (int i = 0; i < headers.length; i++) {
@@ -46,6 +44,14 @@ public class ExcelWriter {
             String projectDirectory = System.getProperty("user.dir");
             String excelFilePath = projectDirectory + "/" + excelFileName;
 
+            // Create parent directories if they don't exist
+            File file = new File(excelFilePath);
+            if (file.getParentFile().mkdirs()) {
+                System.out.println("Parent directories created successfully.");
+            } else {
+                System.out.println("Failed to create parent directories.");
+            }
+
             // Save the workbook to a file
             try (OutputStream outputStream = new FileOutputStream(excelFilePath)) {
                 workbook.write(outputStream);
@@ -53,7 +59,6 @@ public class ExcelWriter {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
         } catch (IOException e) {
             e.printStackTrace();
         }

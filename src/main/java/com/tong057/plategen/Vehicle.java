@@ -1,9 +1,9 @@
 package com.tong057.plategen;
 
 public class Vehicle {
-    private String brand;
-    private String model;
-    private int yearProd;
+    private final String brand;
+    private final String model;
+    private final int yearProd;
 
     Vehicle(String brand, String model, int yearProd) {
         this.brand = brand;

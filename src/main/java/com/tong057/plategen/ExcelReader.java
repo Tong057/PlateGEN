@@ -2,6 +2,8 @@ package com.tong057.plategen;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -15,30 +17,32 @@ public class ExcelReader {
         Map<String, Map<String, String>> voivodeshipsTownships = new HashMap<>();
         String excelFilePath = "/excel/townships.xlsx";
 
-        try (InputStream inputStream = ExcelReader.class.getResourceAsStream(excelFilePath);
-             Workbook workbook = new XSSFWorkbook(inputStream)) {
-            for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
-                Sheet sheet = workbook.getSheetAt(i);
-                Map<String, String> townshipsCodes = new HashMap<>();
-                String voivodeshipName = sheet.getSheetName();
-                String townshipName = null;
-                String townshipCode = null;
+        try (InputStream inputStream = ExcelReader.class.getResourceAsStream(excelFilePath)) {
+            assert inputStream != null;
+            try (Workbook workbook = new XSSFWorkbook(inputStream)) {
+                for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
+                    Sheet sheet = workbook.getSheetAt(i);
+                    Map<String, String> townshipsCodes = new HashMap<>();
+                    String voivodeshipName = sheet.getSheetName();
+                    String townshipName = null;
+                    String townshipCode = null;
 
-                for (Row row : sheet) {
-                    Cell cell = row.getCell(0);
-                    if (cell != null) {
-                        townshipName = cell.getStringCellValue();
+                    for (Row row : sheet) {
+                        Cell cell = row.getCell(0);
+                        if (cell != null) {
+                            townshipName = cell.getStringCellValue();
+                        }
+
+                        cell = row.getCell(1);
+                        if (cell != null) {
+                            townshipCode = cell.getStringCellValue();
+                        }
+
+                        townshipsCodes.put(townshipName, townshipCode);
                     }
 
-                    cell = row.getCell(1);
-                    if (cell != null) {
-                        townshipCode = cell.getStringCellValue();
-                    }
-
-                    townshipsCodes.put(townshipName, townshipCode);
+                    voivodeshipsTownships.put(voivodeshipName, townshipsCodes);
                 }
-
-                voivodeshipsTownships.put(voivodeshipName, townshipsCodes);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -49,13 +53,18 @@ public class ExcelReader {
 
     public static List<Registration> readRegistrations() {
         List<Registration> registrations = new ArrayList<>();
-        String excelFilePath = "/excel/registrations.xlsx";
+        String excelFilePath = "src/main/resources/excel/registrations.xlsx";
         String sheetName = "Registrations";
         int startRow = 1;
 
-        try (InputStream inputStream = ExcelReader.class.getResourceAsStream(excelFilePath);
+        try (InputStream inputStream = new FileInputStream(excelFilePath);
              Workbook workbook = new XSSFWorkbook(inputStream)) {
+
             Sheet sheet = workbook.getSheet(sheetName);
+            if (sheet == null) {
+                System.out.println("Sheet '" + sheetName + "' does not exist in the Excel file.");
+                return registrations; // Return empty list instead of null
+            }
 
             for (int rowIndex = startRow; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
                 Row row = sheet.getRow(rowIndex);
@@ -76,6 +85,9 @@ public class ExcelReader {
                 Registration registration = new Registration(plate, vehicle);
                 registrations.add(registration);
             }
+        } catch (FileNotFoundException e) {
+            System.out.println("Excel file not found at path: " + excelFilePath);
+            return registrations; // Return empty list instead of null
         } catch (IOException e) {
             e.printStackTrace();
         }

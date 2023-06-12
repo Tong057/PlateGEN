@@ -1,3 +1,9 @@
+
+#savePlateButton
+{
+-fx-font-size: 14;
+}
+
 .button
 {
 -fx-background-color: #1a1e22;
@@ -7,6 +13,11 @@
 .button:hover
 {
 -fx-background-color : #262c32;
+}
+
+.button:pressed
+{
+-fx-background-color : #1a1e22;
 }
 
 .menuButton
@@ -27,10 +38,18 @@
 -fx-background-color: #14161a;
 }
 
-
-.button:pressed
+#generatePlateButton
 {
--fx-background-color : #1a1e22;
+-fx-background-color: #1a1e22;
+-fx-font-size: 20;
+-fx-font-family: Swis721 Hv BT;
+-fx-font-weight: 700;
+-fx-background-radius: 15;
+}
+
+#generatePlateButton:hover
+{
+-fx-background-color: #262c32;
 }
 
 .scroll-pane {

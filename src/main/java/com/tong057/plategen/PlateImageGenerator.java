@@ -8,7 +8,6 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
-
 import javax.imageio.ImageIO;
 import java.io.File;
 import java.io.IOException;
@@ -36,9 +35,9 @@ public class PlateImageGenerator {
         }
 
         // Load the plate frame image
+        assert plateFramePath != null;
         ImageView plateFrame = new ImageView(new Image(Objects.requireNonNull(PlateImageGenerator.class.getResource(plateFramePath)).toExternalForm()));
 
-        // Create the plate text
         Text textNode = createPlateText(plateNumber, format);
 
         // Combine the frame and text
@@ -61,7 +60,11 @@ public class PlateImageGenerator {
             // Create the "images" directory if it doesn't exist
             File directory = new File(imageDirectory);
             if (!directory.exists()) {
-                directory.mkdir();
+                if (directory.mkdir()) {
+                    System.out.println("Directory created successfully.");
+                } else {
+                    System.out.println("Failed to create directory.");
+                }
             }
 
             String fileName = plateNumber + ".png"; // Specify the file name
@@ -91,7 +94,7 @@ public class PlateImageGenerator {
 
         Text textNode = new Text(plateNumber.toLowerCase());
         try {
-            // Load the font from the "resources" folder
+            // Load the font
             Font font = Font.loadFont(Objects.requireNonNull(PlateImageGenerator.class.getResource(fontPath)).toExternalForm(), 308);
             textNode.setFont(font);
         } catch (Exception e) {

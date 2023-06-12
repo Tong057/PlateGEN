@@ -2,18 +2,14 @@ package com.tong057.plategen;
 
 import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.shape.Rectangle;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Objects;
 
 public class ImageUtils {
 
@@ -21,7 +17,7 @@ public class ImageUtils {
         if (image != null) {
             FileChooser fileChooser = new FileChooser();
             fileChooser.setTitle("Save Image");
-            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg"));
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Images", "*.png"));
             File file = fileChooser.showSaveDialog(primaryStage);
 
             if (file != null) {
@@ -36,12 +32,9 @@ public class ImageUtils {
         }
     }
 
-    public static void deleteImage(String fileName) {
-        String projectDirectory = System.getProperty("user.dir"); // Get the current project directory
-        String filePath = projectDirectory + "/src/main/resources/images/license-plates/" + fileName + ".png";
-
+    public static void deleteImage(String imagePath) {
         try {
-            Files.deleteIfExists(Paths.get(filePath));
+            Files.deleteIfExists(Paths.get(imagePath));
             System.out.println("File deleted successfully.");
         } catch (IOException e) {
             System.out.println("Error deleting the file: " + e.getMessage());

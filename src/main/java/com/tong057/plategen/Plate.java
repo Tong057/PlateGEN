@@ -30,7 +30,7 @@ public class Plate {
 
     public String getFullInfo() {
         return "[" + plateNumber + "]" + ", " + format + " format" + "\n" + voivodeship + " województwo, "
-                + township + " " + determineTownshipOrCity() + "\nPrice: " + cost + "zł";
+                + township + " " + determineTownshipOrCity() + "\nPrice: " + cost + " zł";
     }
 
     public String determineTownshipOrCity() {

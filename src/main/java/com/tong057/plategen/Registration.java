@@ -1,8 +1,8 @@
 package com.tong057.plategen;
 
 public class Registration {
-    private Plate plate;
-    private Vehicle vehicle;
+    private final Plate plate;
+    private final Vehicle vehicle;
 
     public Registration(Plate plate, Vehicle vehicle) {
         this.plate = plate;
